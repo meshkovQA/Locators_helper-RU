@@ -1,0 +1,132 @@
+body {
+    font-family: Arial, sans-serif;
+    padding: 10px;
+    width: 450px;
+    background-color: #f5f5f5;
+    color: #095488;
+}
+
+.hidden {
+    display: none;
+}
+
+.tabs {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.tab {
+    padding: 10px 15px;
+    border-radius: 5px;
+    background-color: #01A2C6;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    text-align: center;
+    flex: 1;
+    margin: 0 5px;
+}
+
+.tab:hover {
+    background-color: #095488;
+}
+
+.tab.active {
+    background-color: #EC7B4D;
+}
+
+textarea {
+    width: 100%;
+    height: 200px;
+    margin-top: 10px;
+    border: 1px solid #095488;
+    border-radius: 5px;
+    padding: 10px;
+    font-family: monospace;
+}
+
+.content {
+    display: none;
+}
+
+.content.active {
+    display: block;
+}
+
+button {
+    margin-top: 10px;
+    padding: 10px 15px;
+    background-color: #01A2C6;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #EC7B4D;
+}
+
+select,
+input[type="checkbox"] {
+    margin: 5px 0;
+}
+
+h1 {
+    color: #095488;
+}
+
+h2,
+h3 {
+    margin-top: 20px;
+    color: #095488;
+}
+
+#results,
+#settings {
+    margin-bottom: 20px;
+}
+
+pre {
+    background-color: #000;
+    padding: 10px;
+    border-radius: 5px;
+    font-family: monospace;
+    overflow-x: auto;
+}
+
+#customPrompt {
+    width: 95%;
+    height: 40px;
+    padding: 10px;
+    border: 2px solid #01A2C6;
+    /* Основной цвет рамки */
+    border-radius: 8px;
+    /* Закругленные углы */
+    font-size: 12px;
+    /* Размер текста */
+    font-family: Arial, sans-serif;
+    /* Шрифт */
+    background-color: #F0F8FB;
+    /* Светло-голубой фон */
+    color: #095488;
+    /* Темно-синий текст */
+    outline: none;
+    /* Убираем стандартную обводку при фокусе */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    /* Легкая тень */
+    transition: all 0.3s ease-in-out;
+    /* Плавный переход для фокуса */
+}
+
+#customPrompt:focus {
+    border-color: #EC7B4D;
+    /* Цвет рамки при фокусе */
+    box-shadow: 0 4px 10px rgba(236, 123, 77, 0.4);
+    /* Тень при фокусе */
+    background-color: #FFFFFF;
+    /* Белый фон при фокусе */
+}

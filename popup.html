@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Automation Co-pilot</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="prism.css">
+    <script src="prism.js"></script>
+</head>
+
+<body>
+    <h1>Automation Co-pilot</h1>
+
+    <div class="tabs">
+        <div id="results-tab" class="tab active">Создать локатор или page objects</div>
+        <div id="settings-tab" class="tab">Настройки</div>
+    </div>
+
+    <!-- Секция для отображения результатов -->
+    <div id="results" class="content active">
+        <h2>Результаты</h2>
+        <div id="output">
+            <!-- Здесь будет отформатированный текст -->
+        </div>
+        <div id="instructions" class="hidden">
+            <br>
+            <h3>Дополнительные инструкции:</h3>
+            <textarea id="customPrompt"
+                placeholder="Добавьте дополнительные инструкции, чтобы изменить код..."></textarea>
+            <div>
+                <button id="refine">Отправить запрос</button>
+                <button id="copy">Скопировать</button>
+                <button id="clear">Очистить результаты</button>
+            </div>
+        </div>
+        <div id="noResultsMessage">
+            Пожалуйста, выберите элементы через контекстное меню
+        </div>
+    </div>
+
+    <!-- Секция настроек -->
+    <div id="settings" class="content">
+        <h2>Настройки</h2>
+        <label for="apiKey">Введите ваш OpenAI API Key:</label>
+        <input type="password" id="apiKey" placeholder="sk-..." />
+        <br>
+        <button id="saveKey">Сохранить API Key</button>
+        <br>
+        <br>
+        <label for="language">Выберите язык программирования:</label>
+        <select id="language">
+            <option value="java" selected>Java</option>
+            <option value="javascript">JavaScript</option>
+            <option value="csharp">C#</option>
+            <option value="python">Python</option>
+        </select>
+        <br>
+
+        <label for="framework">Выберите фреймворк:</label>
+        <select id="framework">
+            <option value="PlayWright">PlayWright</option>
+            <option value="Selenium">Selenium</option>
+            <option value="Selenide" selected>Selenide</option>
+            <option value="Cypress">Cypress</option>
+            <option value="Pytest">Pytest</option>
+        </select>
+        <br>
+
+        <h3>Выберите локаторы для генерации:</h3>
+        <label><input type="checkbox" id="useId" checked> Use ID</label><br>
+        <label><input type="checkbox" id="useClass" checked> Use Class</label><br>
+        <label><input type="checkbox" id="useCss" checked> Use CSS</label><br>
+        <label><input type="checkbox" id="useXpath" checked> Use XPath</label><br>
+
+        <button id="save">Сохранить настройки</button>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,28 @@
+{
+    "manifest_version": 3,
+    "name": "AI Automation Co-pilot RU",
+    "version": "1.0",
+    "description": "Automation Co-pilot для генерации локаторов и page objects с помощью AI.",
+    "permissions": [
+        "contextMenus",
+        "scripting",
+        "storage",
+        "activeTab",
+        "notifications"
+    ],
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "icons": {
+        "48": "icon.png"
+    },
+    "action": {
+        "default_popup": "popup.html"
+    },
+    "content_security_policy": {
+        "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self'"
+    }
+}
