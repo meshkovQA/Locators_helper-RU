@@ -25,83 +25,149 @@ chrome.runtime.onInstalled.addListener(() => {
 
 });
 
+// Обработчик кликов по пунктам контекстного меню
 chrome.contextMenus.onClicked.addListener((info, tab) => {
+    console.log(`[ContextMenu Clicked] MenuItemId: ${info.menuItemId}, TabId: ${tab.id}`);
+
     if (info.menuItemId === "generateLocator") {
-        chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: generateLocators,
-        }, handleLocatorResult);
+        console.log("[generateLocator] Executing locators.js...");
+        // Выполнение locators.js для генерации локаторов
+        chrome.scripting.executeScript(
+            {
+                target: { tabId: tab.id },
+                files: ["locators.js"],
+            },
+            () => {
+                if (chrome.runtime.lastError) {
+                    console.error("[generateLocator] Error executing script:", chrome.runtime.lastError.message);
+                    return;
+                }
+
+                console.log("[generateLocator] locators.js injected. Now sending message to run generateLocators()...");
+                chrome.tabs.sendMessage(tab.id, { action: 'generateLocators' }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        console.error("[generateLocator] Error sending message:", chrome.runtime.lastError.message);
+                        return;
+                    }
+
+                    // 3) Получаем ответ из locators.js
+                    if (response && response.success && response.data) {
+                        console.log("[generateLocator] Locators received:", response.data);
+                        handleLocatorResult(response.data)
+                    } else {
+                        console.warn("[generateLocator] No locators generated or error occurred.", response);
+                    }
+                });
+            }
+        );
+    }
+    else if (info.menuItemId === "addElementForPageObject") {
+        console.log("[addElementForPageObject] Injecting locators.js...");
+        // Выполнение locators.js для добавления элемента
+        chrome.scripting.executeScript(
+            {
+                target: { tabId: tab.id },
+                files: ["locators.js"],
+            },
+            () => {
+                // Если произошла ошибка при инъекции
+                if (chrome.runtime.lastError) {
+                    console.error("[addElementForPageObject] Error injecting script:", chrome.runtime.lastError.message);
+                    return;
+                }
+
+                console.log("[addElementForPageObject] locators.js. Now sending message to collect element...");
+
+                // 2) Отправляем сообщение «собрать элемент»
+                chrome.tabs.sendMessage(tab.id, { action: 'collectElement' }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        console.error("[addElementForPageObject] Error sending message:", chrome.runtime.lastError.message);
+                        return;
+                    }
+
+                    // 3) Обрабатываем ответ
+                    if (response && response.success && response.data) {
+                        console.log("[addElementForPageObject] Element collected:", response.data);
+                        // Вызов вашей функции, которая сохранит элемент и выведет уведомление
+                        handleElementAdded(response.data);
+                    } else {
+                        console.error("[addElementForPageObject] No element collected or an error occurred:", response);
+                    }
+                });
+            }
+        );
     }
 
-
-    if (info.menuItemId === "addElementForPageObject") {
-        chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: collectElementForPageObject,
-        }, handleElementAdded);
-    }
-
-
-    if (info.menuItemId === "generatePageObject") {
+    else if (info.menuItemId === "generatePageObject") {
+        // Генерация Page Object
         chrome.storage.local.get("elementsForPageObject", (data) => {
             const elements = data.elementsForPageObject || [];
-
-            if (elements.length === 0) {
-                alert("No elements added for Page Object generation!");
+            if (!elements.length) {
+                console.warn("No elements added for Page Object generation!");
                 return;
             }
-
             handlePageObjectGeneration(elements);
         });
     }
 });
 
 // Обработка добавления элемента
-function handleElementAdded(results) {
-    const element = results[0]?.result;
+function handleElementAdded(element) {
+    console.log(`[handleElementAdded] Results:`, element);
 
     if (!element) {
-        chrome.notifications.create({
-            type: "basic",
-            iconUrl: "icon.png", // Укажите путь к иконке расширения
-            title: "Error",
-            message: "No element selected!",
-        });
+        console.error("[Error] No element found.");
         return;
     }
+
+    console.log(`[handleElementAdded] Element received:`, element);
 
     chrome.storage.local.get("elementsForPageObject", (data) => {
         const elements = data.elementsForPageObject || [];
         elements.push(element);
 
         chrome.storage.local.set({ elementsForPageObject: elements }, () => {
-            // Формируем список добавленных элементов
-            const elementList = elements.map((el, index) => {
-                const idInfo = el.id ? ` (ID: ${el.id})` : "";
-                const textInfo = el.text ? ` (Text: "${el.text}")` : "";
-                return `${index + 1}. ${el.tagName}${idInfo}${textInfo}`;
-            }).join("\n");
+            console.log(`[handleElementAdded] Element added to storage.`, elements);
+            try {
+                // Генерируем текст уведомления
+                const elementList = elements
+                    .map(
+                        (el, index) =>
+                            `${index + 1}. ${el.tagName} (ID: ${el.id || "N/A"}, Text: ${el.text || "N/A"})`
+                    )
+                    .join("\n");
 
-            // Отправляем уведомление
-            chrome.notifications.create({
-                type: "basic",
-                iconUrl: "icon.png", // Укажите путь к иконке расширения
-                title: "Element Added",
-                message: `Element added:\n${element.tagName} ${element.id || ""}\n\nList of elements:\n${elementList}`,
-            });
+                // Показываем уведомление
+                chrome.notifications.create({
+                    type: "basic",
+                    iconUrl: "icon.png",
+                    title: "Element Added",
+                    message: `New element added:\n${element.tagName} (${element.id || "No ID"})\n\nAll elements:\n${elementList}`,
+                });
+            } catch (error) {
+                console.error("Error generating notification:", error);
+                chrome.notifications.create({
+                    type: "basic",
+                    iconUrl: "icon.png",
+                    title: "Error",
+                    message: "Failed to generate notification.",
+                });
+            }
         });
     });
 }
 
 // Обработка результата для локаторов
-async function handleLocatorResult(results) {
-    // Получаем информацию о локаторах
-    const locators = results[0].result;
+async function handleLocatorResult(locators) {
+    console.log(`[handleLocatorResult] Results:`, locators);
 
     if (!locators) {
+        console.error(`[Error] No locators found in results.`);
         alert("No locators found!");
         return;
     }
+
+    console.log(`[handleLocatorResult] Locators received:`, locators);
 
     const { language, framework, apiKey } = await getSettings();
 
@@ -121,8 +187,7 @@ async function handleLocatorResult(results) {
 Optimize the following locators for use in ${framework} with ${language}:
 Locators: ${JSON.stringify(locators)}
 Provide the results as code, not JSON, for use in ${framework} with ${language} for each optimized locator type (you can provide several resuls for one type as well if you can).
-You don't to provide explanations or text, only code.
-All comments must be in russian.
+You don't need to provide explanations or text, only code.
                             `
         }
     ];
@@ -149,8 +214,7 @@ Generate a Page Object class for the following elements using ${framework} and $
 ${JSON.stringify(elements, null, 2)}
 Each element should have a locator (ID > Class > Text > Attribute).
 Include methods for interacting with these elements (e.g., click, getText).
-You don't to provide explanations or text, only code.
-All comments must be in russian.
+You don't need to provide explanations or text, only code.
     `;
 
     const messages = [
@@ -243,8 +307,7 @@ async function refineResults(prompt, sendResponse) {
             { role: "system", content: "You are an assistant that generates and refines test automation." },
             {
                 role: "user",
-                content: `${baseContent}\n\nRefine the results based on the following instructions:\n${prompt}
-                All comments must be in russian.`
+                content: `${baseContent}\n\nRefine the results based on the following instructions:\n${prompt}`
             }
         ];
 
@@ -305,126 +368,4 @@ async function refineResults(prompt, sendResponse) {
         console.error("Error in refineResults:", error);
         sendResponse({ success: false, error: error?.message || "Unknown error" });
     }
-}
-
-// Функция для выполнения на странице
-function collectElementForPageObject() {
-    const element = document.activeElement || document.querySelector(':hover');
-
-    if (!element) {
-        return null;
-    }
-
-    return {
-        tagName: element.tagName.toLowerCase(),
-        id: element.id || null,
-        classes: element.className ? element.className.split(" ") : [],
-        text: element.innerText.trim(),
-        attributes: Array.from(element.attributes).reduce((acc, attr) => {
-            acc[attr.name] = attr.value;
-            return acc;
-        }, {})
-    };
-}
-
-// Функция для выполнения на странице
-function generateLocators() {
-    // Находим активный элемент (тот, на который был совершен клик)
-    const element = document.activeElement || document.querySelector(':hover');
-
-    if (!element) {
-        alert('Element not found!');
-        return;
-    }
-
-    // Собираем основные данные элемента
-    const elementDetails = {
-        tagName: element.tagName.toLowerCase(),
-        id: element.id || null,
-        classes: element.className ? element.className.split(" ") : [],
-        href: element.getAttribute("href") || null,
-        text: element.innerText.trim() || null,
-        attributes: Array.from(element.attributes).reduce((acc, attr) => {
-            acc[attr.name] = attr.value;
-            return acc;
-        }, {})
-    };
-
-    // Генерация XPath
-    const generateXPath = (el) => {
-        if (el.id) {
-            return `//*[@id="${el.id}"]`;
-        }
-
-        // Проверка уникальных атрибутов (например, href, data-*)
-        const uniqueAttrs = [];
-        Array.from(el.attributes).forEach(attr => {
-            if (attr.name.startsWith("data-") || attr.name === "href") {
-                uniqueAttrs.push(`@${attr.name}="${attr.value}"`);
-            }
-        });
-
-        if (uniqueAttrs.length > 0) {
-            return `//${el.tagName.toLowerCase()}[${uniqueAttrs.join(" and ")}]`;
-        }
-
-        // Построение пути через DOM
-        let path = "";
-        while (el && el.nodeType === Node.ELEMENT_NODE) {
-            let index = 1;
-            let sibling = el.previousElementSibling;
-
-            while (sibling) {
-                if (sibling.tagName === el.tagName) {
-                    index++;
-                }
-                sibling = sibling.previousElementSibling;
-            }
-
-            const tagName = el.tagName.toLowerCase();
-            const part = index > 1 ? `${tagName}[${index}]` : tagName;
-            path = `/${part}${path}`;
-            el = el.parentElement;
-        }
-        return path;
-    };
-
-    // Генерация CSS-селектора
-    const generateCSSSelector = (el) => {
-        if (el.id) {
-            return `${el.tagName.toLowerCase()}#${el.id}`;
-        }
-
-        const classes = el.className
-            ? `.${el.className.trim().replace(/\s+/g, ".")}`
-            : "";
-
-        if (el.parentElement) {
-            return `${generateCSSSelector(el.parentElement)} > ${el.tagName.toLowerCase()}${classes}`;
-        }
-
-        return `${el.tagName.toLowerCase()}${classes}`;
-    };
-
-    // XPath с текстом
-    const byTextXPath = elementDetails.text
-        ? `//${elementDetails.tagName}[contains(text(), "${elementDetails.text}")]`
-        : null;
-
-    const xPath = generateXPath(element);
-    const cssSelector = generateCSSSelector(element);
-
-    return {
-        tagName: elementDetails.tagName,
-        id: elementDetails.id,
-        classes: elementDetails.classes,
-        href: elementDetails.href,
-        text: elementDetails.text,
-        attributes: elementDetails.attributes,
-        xPath,
-        cssSelector,
-        byTextXPath: elementDetails.text
-            ? `//${elementDetails.tagName}[contains(text(), "${elementDetails.text}")]`
-            : null
-    };
 }
