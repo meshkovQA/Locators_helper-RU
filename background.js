@@ -215,6 +215,7 @@ Optimize the following locators for use in ${framework} with ${language}:
 Locators: ${JSON.stringify(locators)}
 Provide the results as code, not JSON, for use in ${framework} with ${language} for each optimized locator type (you can provide several resuls for one type as well if you can).
 You don't need to provide explanations or text, only code.
+Provide answer in Russian language.
                             `
         }
     ];
@@ -242,6 +243,7 @@ ${JSON.stringify(elements, null, 2)}
 Each element should have a locator (ID > Class > Text > Attribute).
 Include methods for interacting with these elements (e.g., click, getText).
 You don't need to provide explanations or text, only code.
+Provide answer in Russian language.
     `;
 
     const messages = [
@@ -334,7 +336,8 @@ async function refineResults(prompt, sendResponse) {
             { role: "system", content: "You are an assistant that generates and refines test automation." },
             {
                 role: "user",
-                content: `${baseContent}\n\nRefine the results based on the following instructions:\n${prompt}`
+                content: `${baseContent}\n\nRefine the results based on the following instructions:\n${prompt} Provide answer in Russian language.`
+
             }
         ];
 
