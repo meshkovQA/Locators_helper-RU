@@ -1,17 +1,19 @@
+//background.js
+
 chrome.runtime.onInstalled.addListener(() => {
     console.log("Extension installed");
 
     // Пункт для генерации локаторов
     chrome.contextMenus.create({
         id: "generateLocator",
-        title: "Сгенерировать локаторы для данного элемента",
+        title: "Сгенерировать локатор для элемента",
         contexts: ["all"]
     });
 
     // Пункт для добавления элемента в список для Page Object
     chrome.contextMenus.create({
         id: "addElementForPageObject",
-        title: "Добавить элемент в список для Page Object",
+        title: "Добавить элемент в Page Object",
         contexts: ["all"]
     });
 
@@ -19,10 +21,15 @@ chrome.runtime.onInstalled.addListener(() => {
     // Пункт для генерации Page Object
     chrome.contextMenus.create({
         id: "generatePageObject",
-        title: "Сгенерировать Page Object класс",
+        title: "Сгенерировать Page Object",
         contexts: ["all"]
     });
 
+    chrome.contextMenus.create({
+        id: "selectRegionForPageObject",
+        title: "Выбрать область для Page Object",
+        contexts: ["all"]
+    });
 });
 
 // Обработчик кликов по пунктам контекстного меню
@@ -108,6 +115,26 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
             }
             handlePageObjectGeneration(elements);
         });
+    }
+
+    else if (info.menuItemId === "selectRegionForPageObject") {
+        console.log("[selectRegionForPageObject] Injecting regionSelector.js...");
+        // Внедряем наш новый скрипт
+        chrome.scripting.executeScript(
+            {
+                target: { tabId: tab.id },
+                files: ["regionSelector.js"], // тот самый новый файл
+            },
+            () => {
+                if (chrome.runtime.lastError) {
+                    console.error("[selectRegionForPageObject] Error injecting:", chrome.runtime.lastError.message);
+                    return;
+                }
+                console.log("[selectRegionForPageObject] regionSelector.js injected.");
+                // Дальше regionSelector.js сам порисует оверлей и по завершению
+                // отправит обратно массив элементов с локаторами
+            }
+        );
     }
 });
 
@@ -369,3 +396,31 @@ async function refineResults(prompt, sendResponse) {
         sendResponse({ success: false, error: error?.message || "Unknown error" });
     }
 }
+
+
+// Слушатель, который примет результат из regionSelector.js
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === "regionElementsCollected") {
+        console.log("[background] Got elements from region:", message.data);
+
+        // Например, сохраняем в local storage
+        chrome.storage.local.get("elementsForPageObject", (storageData) => {
+            const existing = storageData.elementsForPageObject || [];
+            // Склеиваем
+            const newElements = [...existing, ...message.data];
+            chrome.storage.local.set({ elementsForPageObject: newElements }, () => {
+                console.log("[background] Region elements saved to local storage:", newElements);
+
+                // Тут же, если хотите, можно вызвать handlePageObjectGeneration(newElements)
+                // или показать уведомление
+                chrome.notifications.create({
+                    type: "basic",
+                    iconUrl: "icon.png",
+                    title: "Region Collected",
+                    message: `${message.data.length} elements collected in region and saved.`,
+                });
+            });
+        });
+        sendResponse({ received: true });
+    }
+});
