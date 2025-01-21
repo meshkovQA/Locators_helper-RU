@@ -25,129 +25,87 @@
     // Мелкая функция, чтобы проверить "динамические" классы
     function isLikelyDynamicClass(className) {
         console.log(`[isLikelyDynamicClass] Checking class:`, className);
-        return /(^ng-|-\d+|_|\bh-\w+)/.test(className);
+        return /(^ng-|data-v-|-[0-9]+|_[0-9a-f]+|h-[a-z0-9]+)/.test(className);
     }
 
-    // Улучшенное построение CSS-пути (рекурсивно).
-    function buildCSSSelector(element) {
-        if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
-
-        // Если есть ID, и он выглядит "хорошо" (не динамический)
-        if (element.id && !isLikelyDynamicClass(element.id)) {
-            return `${element.tagName.toLowerCase()}#${element.id}`;
-        }
-
-        // Составляем список классов (исключая слишком динамические)
-        let classPart = '';
-        if (element.className) {
-            const classes = element.className.trim().split(/\s+/).filter(c => !isLikelyDynamicClass(c));
-            if (classes.length) {
-                classPart = '.' + classes.join('.');
-            }
-        }
-
-        // Проверяем, не является ли элементом типа <tr> или <td>.
-        // Если это тр, получаем индекс в родителе (tbody/table).
-        // Если это td, тоже считаем индекс.
-        let nthPart = '';
-        const parent = element.parentElement;
-        if (parent) {
-            const siblings = Array.from(parent.children).filter((el) => el.tagName === element.tagName);
-            const index = siblings.indexOf(element) + 1; // 1-based
-            if (element.tagName.toLowerCase() === 'tr' || element.tagName.toLowerCase() === 'td' || element.tagName.toLowerCase() === 'li') {
-                nthPart = `:nth-of-type(${index})`;
-            }
-        }
-
-        // Рекурсивный шаг: поднимаемся на уровень выше.
-        // Если у родителя получился короткий локатор (например, #tableId), 
-        // мы можем просто "дописать" > tr:nth-of-type(2)
-        const parentSelector = buildCSSSelector(parent);
-        return parentSelector ? `${parentSelector} > ${element.tagName.toLowerCase()}${classPart}${nthPart}` : element.tagName.toLowerCase() + classPart + nthPart;
+    // Проверка, что селектор уникален
+    function isUniqueSelector(selector) {
+        const elements = document.querySelectorAll(selector);
+        return elements.length === 1;
     }
 
-    // Пример расширенной логики XPath
-    function buildXPath(element) {
-        if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+    function getUniqueElementData(element) {
+        if (!element || element.nodeType !== Node.ELEMENT_NODE) return null;
 
-        // Если есть ID
-        if (element.id && !isLikelyDynamicClass(element.id)) {
-            return `//*[@id="${element.id}"]`;
+        // Проверяем уникальность ID
+        let id = element.id && !isLikelyDynamicClass(element.id) && isUniqueSelector(`#${element.id}`) ? element.id : null;
+
+        // Составляем список классов, исключая динамические
+        const classes = element.className
+            ? element.className
+                .trim()
+                .split(/\s+/)
+                .filter((cls) => !isLikelyDynamicClass(cls))
+            : [];
+
+        // Уникальные атрибуты
+        const attributes = Array.from(element.attributes)
+            .filter(
+                (attr) =>
+                    attr.name &&
+                    !isLikelyDynamicClass(attr.value) &&
+                    (attr.name === "name" || attr.name === "placeholder" || attr.name === "type")
+            )
+            .reduce((acc, attr) => {
+                acc[attr.name] = attr.value;
+                return acc;
+            }, {});
+
+        // Текстовое содержимое
+        const textContent = element.innerText?.trim() || "";
+
+        // Локатор по вложенности div (до 3 уровней)
+        let nestedDivSelector = null;
+        let currentElement = element;
+        let levels = 0;
+
+        while (currentElement && levels < 3) {
+            const tag = currentElement.tagName.toLowerCase();
+            const index = Array.from(currentElement.parentElement?.children || []).indexOf(
+                currentElement
+            );
+
+            nestedDivSelector = nestedDivSelector
+                ? `${tag}:nth-of-type(${index + 1}) > ${nestedDivSelector}`
+                : `${tag}:nth-of-type(${index + 1})`;
+
+            currentElement = currentElement.parentElement;
+            levels++;
         }
 
-        // Проверка data-атрибутов
-        // Собираем подходящие data-*, aria-, или href атрибуты
-        const uniqueAttrs = [];
-        for (const attr of element.attributes) {
-            if (
-                attr.name.startsWith('data-') ||
-                attr.name.startsWith('aria-') ||
-                attr.name === 'href' ||
-                attr.name === 'name'
-            ) {
-                // Можно дополнительно проверить, не выглядит ли значение динамическим
-                uniqueAttrs.push(`@${attr.name}="${attr.value}"`);
-            }
-        }
-        if (uniqueAttrs.length === 1) {
-            return `//${element.tagName.toLowerCase()}[${uniqueAttrs[0]}]`;
-        } else if (uniqueAttrs.length > 1) {
-            // Если несколько подходящих атрибутов, объединяем их через and
-            return `//${element.tagName.toLowerCase()}[${uniqueAttrs.join(' and ')}]`;
-        }
-
-        // Если нет ID/unique атрибутов, уходим «вглубь» с индексами
-        // Находим индекс элемента среди его однотипных братьев
-        let index = 1;
-        let sibling = element.previousElementSibling;
-        while (sibling) {
-            if (sibling.tagName === element.tagName) {
-                index++;
-            }
-            sibling = sibling.previousElementSibling;
-        }
-
-        const parentPart = buildXPath(element.parentElement);
-        const selfPart = `${element.tagName.toLowerCase()}[${index}]`;
-        return parentPart ? `${parentPart}/${selfPart}` : `//${selfPart}`;
+        return {
+            tagName: element.tagName.toLowerCase(),
+            id,
+            classes,
+            text: textContent,
+            attributes,
+            nestedDivSelector,
+        };
     }
 
     // Итоговая функция генерации локаторов
     function generateLocators() {
-        console.log(`[generateLocators] Generating locators.`);
+        console.log(`[generateElementData] Generating data for element.`);
         const element = getTargetElement();
         if (!element) {
-            console.warn(`[generateLocators] No element found.`);
+            console.warn(`[generateElementData] No element found.`);
             alert('Element not found or text selection cannot be resolved!');
             return null;
         }
 
-        const xPath = buildXPath(element);
-        const cssSelector = buildCSSSelector(element);
-        const textContent = element.innerText?.trim() || '';
-
-        // Как вариант, можно собрать "byTextXPath", если текст не пустой и не слишком длинный
-        const byTextXPath =
-            textContent && textContent.length < 100
-                ? `//${element.tagName.toLowerCase()}[contains(normalize-space(.), "${textContent}")]`
-                : null;
-        console.log(`[generateLocators] Locators generated:`, { xPath, cssSelector, byTextXPath }, element);
-        // Собираем всю информацию
-        return {
-            tagName: element.tagName.toLowerCase(),
-            id: element.id || null,
-            classes: element.className ? element.className.split(" ") : [],
-            text: textContent,
-            attributes: Array.from(element.attributes).reduce((acc, attr) => {
-                acc[attr.name] = attr.value;
-                return acc;
-            }, {}),
-
-            // Наши новые усовершенствованные селекторы
-            xPath,
-            cssSelector,
-            byTextXPath,
-        }
+        const elementData = getUniqueElementData(element);
+        console.log(`[generateElementData] Element data generated:`, elementData);
+        return elementData;
     }
 
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

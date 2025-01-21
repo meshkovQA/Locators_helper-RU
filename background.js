@@ -6,7 +6,7 @@ chrome.runtime.onInstalled.addListener(() => {
     // Пункт для генерации локаторов
     chrome.contextMenus.create({
         id: "generateLocator",
-        title: "Сгенерировать локатор для элемента",
+        title: "Сгенерировать локаторы для элемента",
         contexts: ["all"]
     });
 
@@ -215,7 +215,7 @@ Optimize the following locators for use in ${framework} with ${language}:
 Locators: ${JSON.stringify(locators)}
 Provide the results as code, not JSON, for use in ${framework} with ${language} for each optimized locator type (you can provide several resuls for one type as well if you can).
 You don't need to provide explanations or text, only code.
-Provide answer in Russian language.
+The answer has to be in Russian language.
                             `
         }
     ];
@@ -238,13 +238,22 @@ async function handlePageObjectGeneration(elements) {
     }
 
     const prompt = `
-Generate a Page Object class for the following elements using ${framework} and ${language}:
+Based on the provided element properties, generate the most appropriate locator for each element in the following priority:
+1. Use the 'id' if it exists and is unique.
+2. If 'id' is not available, use the 'name' attribute if it exists.
+3. If 'name' is not available, use any unique attribute like 'placeholder' or 'type' or others if available.
+4. If no unique attributes are available, use the element's text.
+5. If none of the above options are available, generate a CSS selector based on div nesting (up to 3 levels).
+
+Ensure that:
+- Locators with dynamic values (e.g., containing numbers like 'data-v-1f99f73c') are excluded.
+- The final result includes optimized locators and methods to interact with each element to use it for use in ${framework} with ${language}.
+
+Properties:
 ${JSON.stringify(elements, null, 2)}
-Each element should have a locator (ID > Class > Text > Attribute).
-Include methods for interacting with these elements (e.g., click, getText).
-You don't need to provide explanations or text, only code.
-Provide answer in Russian language.
-    `;
+Provide the results as code (not JSON) for the specified test ${framework} with ${language}.
+The answer has to be in Russian language.
+        `;
 
     const messages = [
         { role: "system", content: "You are an assistant that generates Page Object classes for test automation." },
@@ -275,8 +284,7 @@ async function sendToOpenAI(messages, apiKey, resultType) {
             },
             body: JSON.stringify({
                 model: "gpt-4o",
-                messages,
-                max_tokens: 1000
+                messages
             })
         });
 
@@ -336,8 +344,8 @@ async function refineResults(prompt, sendResponse) {
             { role: "system", content: "You are an assistant that generates and refines test automation." },
             {
                 role: "user",
-                content: `${baseContent}\n\nRefine the results based on the following instructions:\n${prompt} Provide answer in Russian language.`
-
+                content: `${baseContent}\n\nRefine the results based on the following instructions:\n${prompt}
+                The answer has to be in Russian language.`
             }
         ];
 

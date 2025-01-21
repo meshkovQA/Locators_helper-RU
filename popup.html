@@ -1,8 +1,7 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 
 <head>
-    <meta charset="UTF-8">
     <title>Automation Co-pilot</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="prism.css">
@@ -13,42 +12,41 @@
     <h1>Automation Co-pilot</h1>
 
     <div class="tabs">
-        <div id="results-tab" class="tab active">Создать локатор или page objects</div>
-        <div id="settings-tab" class="tab">Настройки</div>
+        <div id="results-tab" class="tab active">Create localor or page objects</div>
+        <div id="settings-tab" class="tab">Settings</div>
     </div>
 
     <!-- Секция для отображения результатов -->
     <div id="results" class="content active">
-        <h2>Результаты</h2>
+        <h2>Generated Results</h2>
         <div id="output">
             <!-- Здесь будет отформатированный текст -->
         </div>
         <div id="instructions" class="hidden">
             <br>
-            <h3>Дополнительные инструкции:</h3>
-            <textarea id="customPrompt"
-                placeholder="Добавьте дополнительные инструкции, чтобы изменить код..."></textarea>
+            <h3>Custom Instructions:</h3>
+            <textarea id="customPrompt" placeholder="Add custom instructions for refinement..."></textarea>
             <div>
-                <button id="refine">Отправить запрос</button>
-                <button id="copy">Скопировать</button>
-                <button id="clear">Очистить результаты</button>
+                <button id="refine">Refine Results</button>
+                <button id="copy">Copy to Clipboard</button>
+                <button id="clear">Clear Results</button>
             </div>
         </div>
         <div id="noResultsMessage">
-            Пожалуйста, выберите элементы через контекстное меню
+            Please select elements through the Chrome context menu.
         </div>
     </div>
 
     <!-- Секция настроек -->
     <div id="settings" class="content">
-        <h2>Настройки</h2>
-        <label for="apiKey">Введите ваш OpenAI API Key:</label>
+        <h2>Settings</h2>
+        <label for="apiKey">Enter your OpenAI API Key:</label>
         <input type="password" id="apiKey" placeholder="sk-..." />
         <br>
-        <button id="saveKey">Сохранить API Key</button>
+        <button id="saveKey">Save API Key</button>
         <br>
         <br>
-        <label for="language">Выберите язык программирования:</label>
+        <label for="language">Select programming language:</label>
         <select id="language">
             <option value="java" selected>Java</option>
             <option value="javascript">JavaScript</option>
@@ -57,7 +55,7 @@
         </select>
         <br>
 
-        <label for="framework">Выберите фреймворк:</label>
+        <label for="framework">Select framework:</label>
         <select id="framework">
             <option value="PlayWright">PlayWright</option>
             <option value="Selenium">Selenium</option>
@@ -66,14 +64,7 @@
             <option value="Pytest">Pytest</option>
         </select>
         <br>
-
-        <h3>Выберите локаторы для генерации:</h3>
-        <label><input type="checkbox" id="useId" checked> Use ID</label><br>
-        <label><input type="checkbox" id="useClass" checked> Use Class</label><br>
-        <label><input type="checkbox" id="useCss" checked> Use CSS</label><br>
-        <label><input type="checkbox" id="useXpath" checked> Use XPath</label><br>
-
-        <button id="save">Сохранить настройки</button>
+        <button id="save">Save Settings</button>
     </div>
 
     <script src="popup.js"></script>

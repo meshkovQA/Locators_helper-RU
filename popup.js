@@ -30,16 +30,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Загрузка настроек (для отображения в UI)
-    chrome.storage.sync.get(['apiKey', 'language', 'framework', 'useId', 'useClass', 'useCss', 'useXpath'], (data) => {
+    chrome.storage.sync.get(['apiKey', 'language', 'framework'], (data) => {
         document.getElementById('language').value = data.language || 'Java';
         if (data.apiKey) {
             document.getElementById('apiKey').value = data.apiKey;
         }
         document.getElementById('framework').value = data.framework || 'Selenide';
-        document.getElementById('useId').checked = data.useId ?? true;
-        document.getElementById('useClass').checked = data.useClass ?? true;
-        document.getElementById('useCss').checked = data.useCss ?? true;
-        document.getElementById('useXpath').checked = data.useXpath ?? true;
     });
 
     // Сохранение API-ключа
@@ -55,10 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const settings = {
             language: document.getElementById('language').value,
             framework: document.getElementById('framework').value,
-            useId: document.getElementById('useId').checked,
-            useClass: document.getElementById('useClass').checked,
-            useCss: document.getElementById('useCss').checked,
-            useXpath: document.getElementById('useXpath').checked,
         };
 
         chrome.storage.sync.set(settings, () => {
@@ -147,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const customPrompt = document.getElementById('customPrompt').value.trim();
 
         const loadingMessage = document.createElement('div');
-        loadingMessage.textContent = 'Обновляем данные, пожалуйста ожидайте...';
+        loadingMessage.textContent = 'Refining, please wait...';
 
         loadingMessage.style.color = '#EC7B4D';
         loadingMessage.style.fontSize = '14px';
